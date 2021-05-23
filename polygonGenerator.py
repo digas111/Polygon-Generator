@@ -33,13 +33,7 @@ class HalfEdge:
         self.next = next
         self.prev = prev
 
-class DCEL:
-    def __init__(self):
-        self.vertices = []
-        self.faces = []
-        self.halfEdges = []
-
-    def ccw_order(points):
+def tree_vertices_to_ccw_edges(points):
 
         if len(points) != 3:
             #give error
@@ -48,11 +42,19 @@ class DCEL:
         xsorted = sorted(points, key=lambda tup: tup[0])
         first = xsorted.pop(0)
         ysorted = sorted(xsorted, key=lambda tup: tup[1])
-        return [first] + ysorted
+        second = ysorted.pop(0)
+        third = ysorted.pop(0)
+        #return [first] + ysorted
+        return [(first,second),(second,third),(third,first)]
+
+
+class DCEL:
+    def __init__(self):
+        self.vertices = []
+        self.faces = []
+        self.halfEdges = []
 
     def build_dcel(self, points):
-
-        points = DCEL.ccw_order(points)
 
         # Add vertices
 
@@ -73,7 +75,7 @@ class DCEL:
 
 def main():
     triangle1 = [(1,2),(3,0),(4,1)]
-    print(str(DCEL.ccw_order(triangle1)))
+    print(str(tree_vertices_to_ccw_edges(triangle1)))
 
 if __name__ == "__main__":
     main()
