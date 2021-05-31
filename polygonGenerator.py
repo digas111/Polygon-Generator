@@ -18,7 +18,7 @@
 """
 
 import random
-import math
+import matplotlib.pyplot as plt
 
 class Vertex:
 
@@ -40,6 +40,7 @@ class HalfEdge:
         self.incidentFace = None
         self.next = None
         self.prev = None
+        self.isOutside = False
 
 class DCEL:
 
@@ -47,7 +48,6 @@ class DCEL:
         self.vertices = []
         self.faces = []
         self.halfEdges = []
-        self.outsideEdges = []
     
     def __str__(self):
         output = "Vertex:\n"
@@ -56,7 +56,7 @@ class DCEL:
             output += "| v" + str(self.vertices.index(vertex)+1) + " | (" + str(vertex.x) + ", " + str(vertex.y) + ") | e" + str(self.halfEdges.index(vertex.incidentEdge)+1) + " |\n"
 
         output += "Half-edges\n"
-        output += "| Half-edge | Origin | Twin | IncidentFace | Next | Previous |\n"
+        output += "| Half-edge | Origin | Twin | IncidentFace | Next | Previous | isOutside |\n"
         for edge in self.halfEdges:
             output += "| e" + str(self.halfEdges.index(edge)+1) + " |"
             output += " v" + str(self.vertices.index(edge.origin)+1) + " |"
@@ -64,6 +64,7 @@ class DCEL:
             output += " f" + str(self.faces.index(edge.incidentFace)+1) + " |"
             output += " e" + str(self.halfEdges.index(edge.next)+1) + " |"
             output += " e" + str(self.halfEdges.index(edge.prev)+1) + " |"
+            output += " " + str(edge.isOutside) + " |"
             output += "\n"
 
         output += "Faces\n"
@@ -72,6 +73,53 @@ class DCEL:
             output += "| f" + str(self.faces.index(face)) + " | e" + str(self.halfEdges.index(face.edge)) + " |\n"
 
         return output
+
+    def get_outside_edges(self):
+
+        outsideEdges = []
+
+        for edge in self.halfEdges:
+            if edge.isOutside:
+                outsideEdges.append(edge)
+
+        return outsideEdges
+
+    def insideFaces_to_xy(self):
+
+        x = []
+        y = []
+
+        for i in range(1,len(self.faces)):
+
+            fEdge = self.faces[i].edge
+            x.append(fEdge.origin.x)
+            y.append(fEdge.origin.y)
+            
+            j = fEdge.next
+            while j != fEdge:
+                x.append(j.origin.x)
+                y.append(j.origin.y)
+                j = j.next
+
+            x.append(fEdge.origin.x)
+            y.append(fEdge.origin.y)
+        
+        print(x)
+        print(y)
+
+        return x,y
+
+
+    # def points_to_xy(self):
+
+    #     x = []
+    #     y = []
+
+    #     for vertex in self.vertices:
+    #         x.append(vertex.x)
+    #         y.append(vertex.y)
+
+    #     return x,y
 
     def tree_vertices_to_ccw_edges(points):
 
@@ -111,6 +159,8 @@ class DCEL:
             v1.incidentEdge = he1
             v2.incidentEdge = he2
 
+            he2.isOutside = True
+
             self.halfEdges.append(he1)
             self.halfEdges.append(he2)
 
@@ -118,15 +168,15 @@ class DCEL:
 
         # Add faces
 
-        self.faces.append(Face(self.halfEdges[0]))
         self.faces.append(Face(self.halfEdges[1]))
-
+        self.faces.append(Face(self.halfEdges[0]))
+        
         for i in range(0,len(self.halfEdges)):
 
             if i%2:
-                self.halfEdges[i].incidentFace = self.faces[0]
-            else:
                 self.halfEdges[i].incidentFace = self.faces[1]
+            else:
+                self.halfEdges[i].incidentFace = self.faces[0]
 
             j = (i+2)%(len(self.halfEdges))
             #print("next of " + str(i) + " is " + str(j))
@@ -141,89 +191,210 @@ class DCEL:
 
     def add_vertex(self,edge,x,y):
 
-        v1 = Vertex(x,y)
-        he1 = HalfEdge(edge.next.origin)
-        he2 = HalfEdge(v1)
-        v1.incidentEdge = he1
+        edge.isOutside = False
 
-        he1.next = he2
-        he1.prev = edge
-        he1.incidentFace = Face(he1)
+        vertex = any(elem.x == x and elem.y == y for elem in self.vertices)
 
-        he2.next = edge
-        he2.prev = he1
-        he2.incidentFace = he1.incidentFace
+        if vertex == False: #is new vertex
 
-        he1twin = HalfEdge(v1)
-        he2twin = HalfEdge(edge.origin)
-        
-        he1.twin = he1twin
-        he1.twin.twin = he1
-        he2.twin = he2twin
-        he2.twin.twin = he2
+            v1 = Vertex(x,y)
+            he1 = HalfEdge(edge.next.origin)
+            he2 = HalfEdge(v1)
+            v1.incidentEdge = he1
 
-        edge.prev.next = he2.twin
-        he2.twin.next = he1.twin
-        he2.twin.prev = edge.prev
-        he2.twin.incidentFace = edge.incidentFace
+            he1.next = he2
+            he1.prev = edge
+            he1.incidentFace = Face(he1)
 
-        edge.next.prev = he1.twin
-        he1.twin.next = edge.next
-        he1.twin.prev = he2.twin
-        he1.twin.incidentFace = edge.incidentFace
+            he2.next = edge
+            he2.prev = he1
+            he2.incidentFace = he1.incidentFace
 
-        edge.prev = he2
-        edge.next = he1
-        edge.incidentFace = he1.incidentFace
+            he1twin = HalfEdge(v1)
+            he2twin = HalfEdge(edge.origin)
+            
+            he1.twin = he1twin
+            he1.twin.twin = he1
+            he2.twin = he2twin
+            he2.twin.twin = he2
 
-        self.vertices.append(v1)
-        self.halfEdges.append(he1)
-        self.halfEdges.append(he1.twin)
-        self.halfEdges.append(he2)
-        self.halfEdges.append(he2.twin)
-        self.faces.append(he1.incidentFace)
+            edge.prev.next = he2.twin
+            he2.twin.next = he1.twin
+            he2.twin.prev = edge.prev
+            he2.twin.incidentFace = edge.incidentFace
 
-class NewPointArea:
+            edge.next.prev = he1.twin
+            he1.twin.next = edge.next
+            he1.twin.prev = he2.twin
+            he1.twin.incidentFace = edge.incidentFace
 
-    def get_angle(a,b,c):
-        ang = math.degrees(math.atan2(c[1]-b[1], c[0]-b[0]) - math.atan2(a[1]-b[1], a[0]-b[0]))
-        return math.radians(ang + 360) if ang < 0 else math.radians(ang)
+            edge.prev = he2
+            edge.next = he1
+            edge.incidentFace = he1.incidentFace
 
-def next_point(n,dcel):
+            he1.isOutside = True
+            he2.isOutside = True
 
-    #120º -> 
+            self.vertices.append(v1)
+            self.halfEdges.append(he1)
+            self.halfEdges.append(he1.twin)
+            self.halfEdges.append(he2)
+            self.halfEdges.append(he2.twin)
+            self.faces.append(he1.incidentFace)
 
-    # get an edge from the outside face
-    edg = dcel.faces[1].edge
+        else:
 
-    for i in range(0,random(0,n)):
-        edg = edg.next
+            he1 = HalfEdge(vertex)
+            he1.incidentFace = Face(he1)
+            he1.twin = HalfEdge(vertex)
+            he1.twin.incidentFace = edge.incidentFace
 
-    # get inside triangle for this edge
-    triangle = [edg.twin]
-    triangle.append(edg.twin.next)
-    triangle.append(edg.twin.next.next)
-    ang = get_angle((triangle[0].origin.x,triangle[0].origin.y),(triangle[1].origin.x,triangle[1].origin.y),(triangle[2].origin.x,triangle[2].origin.y))
+            for edge2 in self.get_outside_edges:
+                if edge2.origin == vertex and edge2.next.origin == edge.origin: # vertex to edge origin
+                    #add edge from edge next to vertice
+                    he1.next = edge2
+                    he1.prev = edge
+                    
+                    he1.twin.next = edge.next
+                    he1.twin.prev = edge2.prev
+
+                    edge2.prev.next = he1.twin
+                    edge2.prev = he1
+                    edge2.incidentFace = he1.incidentFace
+
+                    edge.next.prev = he1.twin
+                    edge.next = he1
+                    edge.incidentFace = he1.incidentFace
+
+                    edge2.isOutside = False
+                    break
+                elif edge2.origin == edge.next.origin and edge2.next.origin == vertex: # edge next origin to vertex
+                    #add edge from vertex to edge origin
+                    he1.next = edge
+                    he1.prev = edge2
+
+                    he1.twin.next = edge2.next
+                    he1.twin.prev = edge.prev
+
+                    edge2.next.prev = he1.twin
+                    edge2.next = he1
+                    edge2.incidentFace = he1.incidentFace
+                    
+                    edge.prev.next = he1.twin
+                    edge.prev = he1
+                    edge.incidentFace = he1.incidentFace
+                    break
+
+            self.halfEdges.append(he1)
+            self.halfEdges.append(he1.twin)
+            self.faces.append(he1.incidentFace)
 
 
 
-    # find middle of edge
-    # get 
+def three_vertices(p,direction):
 
-    pass
+    vertices = []
+
+    if direction == "r": #right
+        vertices.append(Vertex(p.x+1,p.y+1))
+        vertices.append(Vertex(p.x+1,p.y))
+        vertices.append(Vertex(p.x+1,p.y-1))
+    elif direction == "l": #left
+        vertices.append(Vertex(p.x-1,p.y+1))
+        vertices.append(Vertex(p.x-1,p.y))
+        vertices.append(Vertex(p.x-1,p.y-1))
+    elif direction == "t": #top
+        vertices.append(Vertex(p.x+1,p.y+1))
+        vertices.append(Vertex(p.x,p.y+1))
+        vertices.append(Vertex(p.x-1,p.y+1))
+    elif direction == "b": #bottom
+        vertices.append(Vertex(p.x+1,p.y-1))
+        vertices.append(Vertex(p.x,p.y-1))
+        vertices.append(Vertex(p.x-1,p.y-1))
+    elif direction == "tdl": #top down left
+        vertices.append(Vertex(p.x+1,p.y))
+        vertices.append(Vertex(p.x+1,p.y-1))
+        vertices.append(Vertex(p.x,p.y-1))
+    elif direction == "tdr": #top down rigth
+        vertices.append(Vertex(p.x,p.y+1))
+        vertices.append(Vertex(p.x+1,p.y+1))
+        vertices.append(Vertex(p.x+1,p.y))
+    elif direction == "btl": #bottom top left
+        vertices.append(Vertex(p.x-1,p.y))
+        vertices.append(Vertex(p.x-1,p.y-1))
+        vertices.append(Vertex(p.x,p.y-1))
+    elif direction == "btr": #bottom top right
+        vertices.append(Vertex(p.x-1,p.y))
+        vertices.append(Vertex(p.x-1,p.y+1))
+        vertices.append(Vertex(p.x,p.y+1))
+
+    return vertices
+
+
+def next_point(dcel):
+
+    edges = dcel.get_outside_edges()
+
+    edge = edges[random.randint(0,len(edges)-1)]
+    p1 = edge.origin
+    p2 = edge.next.origin
+
+    possNextPoint = []
+    direction = None
+
+    if p1.x == p2.x:
+        if p1.y > p2.y: #is right edge
+            direction = "r"
+        else: #is left edge
+            direction = "l"
+    elif p1.y == p2.y:
+        if p1.x > p2.x: #is bottom edge
+            direction = "b"
+        else: #is top edge
+            direction = "t"
+    elif p1.y > p2.y:
+        if p1.x < p2.x: #top down right
+            direction = "tdr"
+        else: #top down left
+            direction = "tdl"
+    elif p1.y < p2.y:
+        if p1.x < p2.x: #bottom top right
+            direction = "btr"
+        else: #bottom top left
+            direction = "btl"
+
+    possNextPoint += three_vertices(p1,direction)
+    possNextPoint += three_vertices(p2,direction)
+
+    return edge,possNextPoint[random.randint(0,len(possNextPoint)-1)]
+
 
 def main():
-    triangle1 = [(1,2),(3,0),(4,1)]
+
+    triangle1 = [(1,2),(2,2),(2,3)]
     print(str(DCEL.tree_vertices_to_ccw_edges(triangle1)))
 
     myDCEL = DCEL()
     myDCEL.build_triangular_dcel(triangle1)
     print(myDCEL)
-    edg = myDCEL.halfEdges[4]
 
-    myDCEL.add_vertex(edg,4,3)
+    #edg = myDCEL.halfEdges[4]
+    #myDCEL.add_vertex(edg,4,3)
+
+    n = int(input("Nº of vertices: "))
+
+    for i in range(0,n):
+        edge,vertex = next_point(myDCEL)
+        myDCEL.add_vertex(edge,vertex.x,vertex.y)
 
     print(myDCEL)
+
+    x,y = myDCEL.insideFaces_to_xy()
+
+    plt.plot(x,y)
+    plt.show()
+
+
 
 if __name__ == "__main__":
     main()
