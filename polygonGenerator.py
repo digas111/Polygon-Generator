@@ -15,6 +15,10 @@
             - Given by the size of smallest edge and size of the sum two largest edge and the largets angle (inside m range)
         - 
 
+    ------------------------------
+
+        -
+
 """
 
 import random
@@ -26,6 +30,16 @@ class Vertex:
         self.x = x
         self.y = y
         self.incidentEdge = None
+
+    #função que calcula o reflexo ao point sobre a reta definida por point1 e point2
+    def mirror(self, point1, point2):
+        m = (point2.y - point1.y) / (point2.x - point1.x)
+        c = (point2.x * point1.y - point1.x * point2.y) / (point2.x - point1.x)
+
+        d = (self.x + (self.y - c) * m) / (1 + m * m)
+
+        self.x = 2 * d - self.x
+        self.y = 2 * d * m - self.y + 2 * c
 
 class Face:
 
@@ -108,18 +122,6 @@ class DCEL:
         print(y)
 
         return x,y
-
-
-    # def points_to_xy(self):
-
-    #     x = []
-    #     y = []
-
-    #     for vertex in self.vertices:
-    #         x.append(vertex.x)
-    #         y.append(vertex.y)
-
-    #     return x,y
 
     def tree_vertices_to_ccw_edges(points):
 
@@ -290,83 +292,108 @@ class DCEL:
             self.faces.append(he1.incidentFace)
 
 
+# insideTri uses the barycentric coordinate system to find if point4 is inside the triangle formed by point1,2,3
+def insideTri(point1, point2, point3, point4):
 
-def three_vertices(p,direction):
+    denominator = ((point2.y-point3.y)*(point1.x-point3.x) + (point3.x-point2.x) * (point1.y - point3.y))
+    a = ((point2.y - point3.y) * (point4.x - point3.x) + (point3.x-point2.x) * (point4.y-point3.y)) / denominator
+    b = ((point3.y-point1.y) * (point4.x - point3.x) + (point1.x - point3.x) * (point4.y - point3.y)) / denominator
+    c = 1 - a - b 
+    return 0 <= a and a <= 1 and 0 <= b and b <= 1 and 0 <= c and c <= 1
 
-    vertices = []
+# def next_vertex_aux(v1,v2,direction):
 
-    if direction == "r": #right
-        vertices.append(Vertex(p.x+1,p.y+1))
-        vertices.append(Vertex(p.x+1,p.y))
-        vertices.append(Vertex(p.x+1,p.y-1))
-    elif direction == "l": #left
-        vertices.append(Vertex(p.x-1,p.y+1))
-        vertices.append(Vertex(p.x-1,p.y))
-        vertices.append(Vertex(p.x-1,p.y-1))
-    elif direction == "t": #top
-        vertices.append(Vertex(p.x+1,p.y+1))
-        vertices.append(Vertex(p.x,p.y+1))
-        vertices.append(Vertex(p.x-1,p.y+1))
-    elif direction == "b": #bottom
-        vertices.append(Vertex(p.x+1,p.y-1))
-        vertices.append(Vertex(p.x,p.y-1))
-        vertices.append(Vertex(p.x-1,p.y-1))
-    elif direction == "tdl": #top down left
-        vertices.append(Vertex(p.x+1,p.y))
-        vertices.append(Vertex(p.x+1,p.y-1))
-        vertices.append(Vertex(p.x,p.y-1))
-    elif direction == "tdr": #top down rigth
-        vertices.append(Vertex(p.x,p.y+1))
-        vertices.append(Vertex(p.x+1,p.y+1))
-        vertices.append(Vertex(p.x+1,p.y))
-    elif direction == "btl": #bottom top left
-        vertices.append(Vertex(p.x-1,p.y))
-        vertices.append(Vertex(p.x-1,p.y-1))
-        vertices.append(Vertex(p.x,p.y-1))
-    elif direction == "btr": #bottom top right
-        vertices.append(Vertex(p.x-1,p.y))
-        vertices.append(Vertex(p.x-1,p.y+1))
-        vertices.append(Vertex(p.x,p.y+1))
+#     minDist = 2
 
-    return vertices
+#     v1.x += minDist
+#     v2.x += minDist
 
+
+#     m = Vertex((v1.x+v2.x)/2, (v1.y+v2.y)/2) # Mid point
+#     o = Vertex((v1.x-m.x)*3**0.5, (v1.y-m.y)*3**0.5)
+
+#     v3 = Vertex(m.x+o.y,m.y-o.x)
+#     v4 = Vertex(m.x-o.y,m.y+o.x)
+
+#     r1 = random.uniform(0,1)
+#     r2 = random.uniform(0,1)
+
+#     newv = Vertex(r1 * (v1.x-v3.x) + r2 * (v2.x-v3.x),r1 * (v1.y-v3.y) + r2 * (v2.y-v3.y))
+
+#     newv.x += v3.x
+#     newv.y += v3.y
+
+#     if direction
+
+#     if not insideTri(v1,v2,v3,newv):
+#         print("Not inside daddy")
+#         print("old: " + str(newv))
+#         newv.mirror(v1,v2)
+#         print("new: " + str(newv))
+
+#     return newv
 
 def next_point(dcel):
 
     edges = dcel.get_outside_edges()
 
     edge = edges[random.randint(0,len(edges)-1)]
-    p1 = edge.origin
-    p2 = edge.next.origin
+    v1 = Vertex(edge.origin.x,edge.origin.y)
+    v2 = Vertex(edge.next.origin.x,edge.next.origin.y)
 
-    possNextPoint = []
-    direction = None
+    minDist = 2
 
-    if p1.x == p2.x:
-        if p1.y > p2.y: #is right edge
-            direction = "r"
+    v1.x += minDist
+    v2.x += minDist
+
+    m = Vertex((v1.x+v2.x)/2, (v1.y+v2.y)/2) # Mid point
+    o = Vertex((v1.x-m.x)*3**0.5, (v1.y-m.y)*3**0.5)
+
+    v3 = Vertex(m.x+o.y,m.y-o.x)
+    v4 = Vertex(m.x-o.y,m.y+o.x)
+
+    r1 = random.uniform(0,1)
+    r2 = random.uniform(0,1)
+
+    newv = Vertex(r1 * (v1.x-v3.x) + r2 * (v2.x-v3.x),r1 * (v1.y-v3.y) + r2 * (v2.y-v3.y))
+
+    newv.x += v3.x
+    newv.y += v3.y
+
+    # if not insideTri(v1,v2,v3,newv):
+    #     newv.mirror(v1,v2)
+
+    if v1.x == v2.x:
+        if v1.y > v2.y: #is right edge
+            if not insideTri(v1,v2,v3,newv):
+                newv.mirror(v1,v2)
         else: #is left edge
-            direction = "l"
-    elif p1.y == p2.y:
-        if p1.x > p2.x: #is bottom edge
-            direction = "b"
+            if not insideTri(v1,v2,v4,newv):
+                newv.mirror(v1,v2)
+    elif v1.y == v2.y:
+        if v1.x > v2.x: #is bottom edge
+            if not insideTri(v1,v2,v4,newv):
+                newv.mirror(v1,v2)
         else: #is top edge
-            direction = "t"
-    elif p1.y > p2.y:
-        if p1.x < p2.x: #top down right
-            direction = "tdr"
+            if not insideTri(v1,v2,v3,newv):
+                newv.mirror(v1,v2)
+    elif v1.y > v2.y:
+        if v1.x < v2.x: #top down right
+            if not insideTri(v1,v2,v3,newv):
+                newv.mirror(v1,v2)
         else: #top down left
-            direction = "tdl"
-    elif p1.y < p2.y:
-        if p1.x < p2.x: #bottom top right
-            direction = "btr"
+            if not insideTri(v1,v2,v4,newv):
+                newv.mirror(v1,v2)
+    elif v1.y < v2.y:
+        if v1.x < v2.x: #bottom top right
+            if not insideTri(v1,v2,v3,newv):
+                newv.mirror(v1,v2)
         else: #bottom top left
-            direction = "btl"
+            if not insideTri(v1,v2,v4,newv):
+                newv.mirror(v1,v2)
 
-    possNextPoint += three_vertices(p1,direction)
-    possNextPoint += three_vertices(p2,direction)
 
-    return edge,possNextPoint[random.randint(0,len(possNextPoint)-1)]
+    return edge,newv
 
 
 def main():
