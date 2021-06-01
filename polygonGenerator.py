@@ -33,13 +33,23 @@ class Vertex:
 
     #função que calcula o reflexo ao point sobre a reta definida por point1 e point2
     def mirror(self, point1, point2):
-        m = (point2.y - point1.y) / (point2.x - point1.x)
-        c = (point2.x * point1.y - point1.x * point2.y) / (point2.x - point1.x)
+        if(point2.x == point1.x):
+            if(self.x < point1.x):
+                dist = point1.x - self.x
+                x2 = self.x + dist*2
+                y2 = self.y
+            else:
+                dist = self.x - point1.x
+                x2 = self.x - dist*2
+                y2 = self.y
+        else:
+            m = (point2.y - point1.y) / (point2.x - point1.x)
+            c = (point2.x * point1.y - point1.x * point2.y) / (point2.x - point1.x)
 
-        d = (self.x + (self.y - c) * m) / (1 + m * m)
+            d = (self.x + (self.y - c) * m) / (1 + m * m)
 
-        self.x = 2 * d - self.x
-        self.y = 2 * d * m - self.y + 2 * c
+            self.x = 2 * d - self.x
+            self.y = 2 * d * m - self.y + 2 * c
 
 class Face:
 
