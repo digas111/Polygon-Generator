@@ -36,12 +36,12 @@ class Vertex:
         if(point2.x == point1.x):
             if(self.x < point1.x):
                 dist = point1.x - self.x
-                x2 = self.x + dist*2
-                y2 = self.y
+                self.x = self.x + dist*2
+                self.y = self.y
             else:
                 dist = self.x - point1.x
-                x2 = self.x - dist*2
-                y2 = self.y
+                self.x = self.x - dist*2
+                self.y = self.y
         else:
             m = (point2.y - point1.y) / (point2.x - point1.x)
             c = (point2.x * point1.y - point1.x * point2.y) / (point2.x - point1.x)
@@ -311,38 +311,6 @@ def insideTri(point1, point2, point3, point4):
     c = 1 - a - b 
     return 0 <= a and a <= 1 and 0 <= b and b <= 1 and 0 <= c and c <= 1
 
-# def next_vertex_aux(v1,v2,direction):
-
-#     minDist = 2
-
-#     v1.x += minDist
-#     v2.x += minDist
-
-
-#     m = Vertex((v1.x+v2.x)/2, (v1.y+v2.y)/2) # Mid point
-#     o = Vertex((v1.x-m.x)*3**0.5, (v1.y-m.y)*3**0.5)
-
-#     v3 = Vertex(m.x+o.y,m.y-o.x)
-#     v4 = Vertex(m.x-o.y,m.y+o.x)
-
-#     r1 = random.uniform(0,1)
-#     r2 = random.uniform(0,1)
-
-#     newv = Vertex(r1 * (v1.x-v3.x) + r2 * (v2.x-v3.x),r1 * (v1.y-v3.y) + r2 * (v2.y-v3.y))
-
-#     newv.x += v3.x
-#     newv.y += v3.y
-
-#     if direction
-
-#     if not insideTri(v1,v2,v3,newv):
-#         print("Not inside daddy")
-#         print("old: " + str(newv))
-#         newv.mirror(v1,v2)
-#         print("new: " + str(newv))
-
-#     return newv
-
 def next_point(dcel):
 
     edges = dcel.get_outside_edges()
@@ -373,34 +341,42 @@ def next_point(dcel):
     # if not insideTri(v1,v2,v3,newv):
     #     newv.mirror(v1,v2)
 
-    if v1.x == v2.x:
-        if v1.y > v2.y: #is right edge
-            if not insideTri(v1,v2,v3,newv):
+    if v1.y == v2.y:
+        if not insideTri(v1,v2,v4,newv):
                 newv.mirror(v1,v2)
-        else: #is left edge
-            if not insideTri(v1,v2,v4,newv):
+    else:
+        if not insideTri(v1,v2,v3,newv):
                 newv.mirror(v1,v2)
-    elif v1.y == v2.y:
-        if v1.x > v2.x: #is bottom edge
-            if not insideTri(v1,v2,v4,newv):
-                newv.mirror(v1,v2)
-        else: #is top edge
-            if not insideTri(v1,v2,v3,newv):
-                newv.mirror(v1,v2)
-    elif v1.y > v2.y:
-        if v1.x < v2.x: #top down right
-            if not insideTri(v1,v2,v3,newv):
-                newv.mirror(v1,v2)
-        else: #top down left
-            if not insideTri(v1,v2,v4,newv):
-                newv.mirror(v1,v2)
-    elif v1.y < v2.y:
-        if v1.x < v2.x: #bottom top right
-            if not insideTri(v1,v2,v3,newv):
-                newv.mirror(v1,v2)
-        else: #bottom top left
-            if not insideTri(v1,v2,v4,newv):
-                newv.mirror(v1,v2)
+
+
+    # if v1.x == v2.x:
+    #     if v1.y > v2.y: #is right edge
+    #         if not insideTri(v1,v2,v3,newv):
+    #             newv.mirror(v1,v2)
+    #     else: #is left edge
+    #         if not insideTri(v1,v2,v4,newv):
+    #             newv.mirror(v1,v2)
+    # elif v1.y == v2.y:
+    #     if v1.x > v2.x: #is bottom edge
+    #         if not insideTri(v1,v2,v4,newv):
+    #             newv.mirror(v1,v2)
+    #     else: #is top edge
+    #         if not insideTri(v1,v2,v3,newv):
+    #             newv.mirror(v1,v2)
+    # elif v1.y > v2.y:
+    #     if v1.x < v2.x: #top down right
+    #         if not insideTri(v1,v2,v3,newv):
+    #             newv.mirror(v1,v2)
+    #     else: #top down left
+    #         if not insideTri(v1,v2,v4,newv):
+    #             newv.mirror(v1,v2)
+    # elif v1.y < v2.y:
+    #     if v1.x < v2.x: #bottom top right
+    #         if not insideTri(v1,v2,v3,newv):
+    #             newv.mirror(v1,v2)
+    #     else: #bottom top left
+    #         if not insideTri(v1,v2,v4,newv):
+    #             newv.mirror(v1,v2)
 
 
     return edge,newv

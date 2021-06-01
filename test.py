@@ -61,13 +61,23 @@ class Vertex:
 ################
 #função que calcula o reflexo ao point sobre a reta definida por point1 e point2
     def mirror(self, point1, point2):
-        m = (point2.y - point1.y) / (point2.x - point1.x)
-        c = (point2.x * point1.y - point1.x * point2.y) / (point2.x - point1.x)
+        if(point2.x == point1.x):
+            if(self.x < point1.x):
+                dist = point1.x - self.x
+                self.x = self.x + dist*2
+                self.y = self.y
+            else:
+                dist = self.x - point1.x
+                self.x = self.x - dist*2
+                self.y = self.y
+        else:
+            m = (point2.y - point1.y) / (point2.x - point1.x)
+            c = (point2.x * point1.y - point1.x * point2.y) / (point2.x - point1.x)
 
-        d = (self.x + (self.y - c) * m) / (1 + m * m)
+            d = (self.x + (self.y - c) * m) / (1 + m * m)
 
-        self.x = 2 * d - self.x
-        self.y = 2 * d * m - self.y + 2 * c
+            self.x = 2 * d - self.x
+            self.y = 2 * d * m - self.y + 2 * c
 
 # insideTri uses the barycentric coordinate system to find if point4 is inside the triangle formed by point1,2,3
 def insideTri(point1, point2, point3, point4):
@@ -92,8 +102,48 @@ class Triangle:
 
         return x,y
 
-v1 = Vertex(3,8)
-v2 = Vertex(6,1)
+# v1 = Vertex(3,8)
+# v2 = Vertex(6,1)
+
+#is right edge -> v3
+
+# v1 = Vertex(1,2)
+# v2 = Vertex(1,0)
+
+#is left edge -> v3
+
+# v1 = Vertex(1,0)
+# v2 = Vertex(1,2)
+
+#is bottom edge -> v4
+
+# v1 = Vertex(1,1)
+# v2 = Vertex(3,1)
+
+#is top edge -> v4
+
+# v1 = Vertex(3,1)
+# v2 = Vertex(1,1)
+
+#top down right -> v3
+
+# v1 = Vertex(1,2)
+# v2 = Vertex(2,0)
+
+#top down left -> v3
+
+# v1 = Vertex(3,5)
+# v2 = Vertex(1,2)
+
+#bottom top right -> v3
+
+# v1 = Vertex(1,2)
+# v2 = Vertex(3,5)
+
+#bottom top left -> v3
+
+# v1 = Vertex(2,0)
+# v2 = Vertex(1,2)
 
 minDist = 2
 
