@@ -31,6 +31,9 @@ class Vertex:
         self.y = y
         self.incidentEdge = None
 
+    def __str__(self):
+        return "(" + str(self.x) + "," + str(self.y) + ")"
+
     #função que calcula o reflexo ao point sobre a reta definida por point1 e point2
     def mirror(self, point1, point2):
         if(point2.x == point1.x):
@@ -94,7 +97,7 @@ class DCEL:
         output += "Faces\n"
         output += "| Face | Edge |\n"
         for face in self.faces:
-            output += "| f" + str(self.faces.index(face)) + " | e" + str(self.halfEdges.index(face.edge)) + " |\n"
+            output += "| f" + str(self.faces.index(face)+1) + " | e" + str(self.halfEdges.index(face.edge)+1) + " |\n"
 
         return output
 
@@ -133,183 +136,165 @@ class DCEL:
 
         return x,y
 
-    def tree_vertices_to_ccw_edges(points):
-
-        if len(points) != 3:
-            #give error
-            pass
-        
-        xsorted = sorted(points, key=lambda tup: tup[0])
-        first = xsorted.pop(0)
-        ysorted = sorted(xsorted, key=lambda tup: tup[1])
-        second = ysorted.pop(0)
-        third = ysorted.pop(0)
-        #return [first] + ysorted
-        return [(first,second),(second,third),(third,first)]
-
     def build_triangular_dcel(self, points):
 
-        edges = DCEL.tree_vertices_to_ccw_edges(points)
+        edges = tree_vertices_to_ccw_edges(points)
 
-        # Add vertices
+        v1 = Vertex(edges[0][0][0],edges[0][0][1])
+        v2 = Vertex(edges[1][0][0],edges[1][0][1])
+        v3 = Vertex(edges[2][0][0],edges[2][0][1])
 
-        for edge in edges:
-            self.vertices.append(Vertex(edge[0][0],edge[0][1]))
+        he1 = HalfEdge(v1)
+        he2 = HalfEdge(v2)
+        he3 = HalfEdge(v3)
 
-        # Add HalfEdge
+        v1.incidentEdge = he1
+        v2.incidentEdge = he2
+        v3.incidentEdge = he3
 
-        for i in range(0,3):
-            v1 = self.vertices[i]
-            v2 = self.vertices[(i+1)%3]
-
-            he1 = HalfEdge(v1)
-            he2 = HalfEdge(v2)
-
-            he1.twin = he2
-            he2.twin = he1
-
-            v1.incidentEdge = he1
-            v2.incidentEdge = he2
-
-            he2.isOutside = True
-
-            self.halfEdges.append(he1)
-            self.halfEdges.append(he2)
-
-        #print("Len halfEdges:" + str(len(self.halfEdges)))
-
-        # Add faces
-
-        self.faces.append(Face(self.halfEdges[1]))
-        self.faces.append(Face(self.halfEdges[0]))
+        he1.twin = HalfEdge(v2)
+        he2.twin = HalfEdge(v3)
+        he3.twin = HalfEdge(v1)
         
-        for i in range(0,len(self.halfEdges)):
+        he1.next = he2
+        he1.prev = he3
+        he1.twin.prev = he2.twin
+        he1.twin.next = he3.twin
+        he1.twin.twin = he1
 
-            if i%2:
-                self.halfEdges[i].incidentFace = self.faces[1]
-            else:
-                self.halfEdges[i].incidentFace = self.faces[0]
+        he2.next = he3
+        he2.prev = he1
+        he2.twin.prev = he3.twin
+        he2.twin.next = he1.twin
+        he2.twin.twin = he2
 
-            j = (i+2)%(len(self.halfEdges))
-            #print("next of " + str(i) + " is " + str(j))
+        he3.next = he1
+        he3.prev = he2
+        he3.twin.prev = he1.twin
+        he3.twin.next = he2.twin
+        he3.twin.twin = he3
 
-            self.halfEdges[i].next = self.halfEdges[j]
-            if i==0:
-                self.halfEdges[i].prev = self.halfEdges[len(self.halfEdges)-2]
-            elif i==1:
-                self.halfEdges[i].prev = self.halfEdges[len(self.halfEdges)-1]
-            else:
-                self.halfEdges[i].prev = self.halfEdges[i-2]
+        he1.twin.isOutside = True
+        he2.twin.isOutside = True
+        he3.twin.isOutside = True
+
+        #outside face
+        f1 = Face(he1.twin)
+
+        #inside face
+        f2 = Face(he1)
+
+        he1.incidentFace = f2
+        he2.incidentFace = f2
+        he3.incidentFace = f2
+
+        he1.twin.incidentFace = f1
+        he2.twin.incidentFace = f1
+        he3.twin.incidentFace = f1
+
+        self.vertices.append(v1)
+        self.vertices.append(v2)
+        self.vertices.append(v3)
+
+        self.halfEdges.append(he1)
+        self.halfEdges.append(he2)
+        self.halfEdges.append(he3)
+        self.halfEdges.append(he1.twin)
+        self.halfEdges.append(he2.twin)
+        self.halfEdges.append(he3.twin)
+
+        #outside face
+        self.faces.append(f1)
+
+        #inside face
+        self.faces.append(f2)
 
     def add_vertex(self,edge,x,y):
 
+        print("adding vertex: ("  + str(x) + "," + str(y) + ")")
+        print("to edge: ")
+        print(str(edge.origin) + " -> " + str(edge.next.origin))
+
+        v1 = Vertex(x,y)
+
+        he1 = HalfEdge(edge.next.origin)
+        he2 = HalfEdge(v1)
+
+        v1.incidentEdge = he1
+
+        he1.next = he2
+        he1.prev = edge
+        he1.incidentFace = Face(he1)
+        he1.twin = HalfEdge(v1)
+        
+        he2.next = edge
+        he2.prev = he1
+        he2.incidentFace = he1.incidentFace
+        he2.twin = HalfEdge(he1.next.origin)
+
+        he1.twin.prev = he2.twin
+        he1.twin.next = edge.next
+        he1.twin.incidentFace = edge.incidentFace
+        he1.twin.twin = he1
+        he1.twin.isOutside = True
+
+        he2.twin.prev = edge.prev
+        he2.twin.next = he1.twin
+        he2.twin.incidentFace = edge.incidentFace
+        he2.twin.twin = he2
+        he2.twin.isOutside = True
+
+        edge.next = he1
+        edge.prev = he2
+        edge.incidentFace = he1.incidentFace
         edge.isOutside = False
 
-        vertex = any(elem.x == x and elem.y == y for elem in self.vertices)
+        self.vertices.append(v1)
+        self.halfEdges.append(he1)
+        self.halfEdges.append(he1.twin)
+        self.halfEdges.append(he2)
+        self.halfEdges.append(he2.twin)
+        self.faces.append(he1.incidentFace)
 
-        if vertex == False: #is new vertex
+def tree_vertices_to_ccw_edges(points):
+    
+    if len(points) != 3:
+        #give error
+        pass
+    
+    xsorted = sorted(points, key=lambda tup: tup[0])
+    first = xsorted.pop(0)
+    ysorted = sorted(xsorted, key=lambda tup: tup[1])
+    second = ysorted.pop(0)
+    third = ysorted.pop(0)
+    return [(first,second),(second,third),(third,first)]
 
-            v1 = Vertex(x,y)
-            he1 = HalfEdge(edge.next.origin)
-            he2 = HalfEdge(v1)
-            v1.incidentEdge = he1
-
-            he1.next = he2
-            he1.prev = edge
-            he1.incidentFace = Face(he1)
-
-            he2.next = edge
-            he2.prev = he1
-            he2.incidentFace = he1.incidentFace
-
-            he1twin = HalfEdge(v1)
-            he2twin = HalfEdge(edge.origin)
-            
-            he1.twin = he1twin
-            he1.twin.twin = he1
-            he2.twin = he2twin
-            he2.twin.twin = he2
-
-            edge.prev.next = he2.twin
-            he2.twin.next = he1.twin
-            he2.twin.prev = edge.prev
-            he2.twin.incidentFace = edge.incidentFace
-
-            edge.next.prev = he1.twin
-            he1.twin.next = edge.next
-            he1.twin.prev = he2.twin
-            he1.twin.incidentFace = edge.incidentFace
-
-            edge.prev = he2
-            edge.next = he1
-            edge.incidentFace = he1.incidentFace
-
-            he1.isOutside = True
-            he2.isOutside = True
-
-            self.vertices.append(v1)
-            self.halfEdges.append(he1)
-            self.halfEdges.append(he1.twin)
-            self.halfEdges.append(he2)
-            self.halfEdges.append(he2.twin)
-            self.faces.append(he1.incidentFace)
-
-        else:
-
-            he1 = HalfEdge(vertex)
-            he1.incidentFace = Face(he1)
-            he1.twin = HalfEdge(vertex)
-            he1.twin.incidentFace = edge.incidentFace
-
-            for edge2 in self.get_outside_edges:
-                if edge2.origin == vertex and edge2.next.origin == edge.origin: # vertex to edge origin
-                    #add edge from edge next to vertice
-                    he1.next = edge2
-                    he1.prev = edge
-                    
-                    he1.twin.next = edge.next
-                    he1.twin.prev = edge2.prev
-
-                    edge2.prev.next = he1.twin
-                    edge2.prev = he1
-                    edge2.incidentFace = he1.incidentFace
-
-                    edge.next.prev = he1.twin
-                    edge.next = he1
-                    edge.incidentFace = he1.incidentFace
-
-                    edge2.isOutside = False
-                    break
-                elif edge2.origin == edge.next.origin and edge2.next.origin == vertex: # edge next origin to vertex
-                    #add edge from vertex to edge origin
-                    he1.next = edge
-                    he1.prev = edge2
-
-                    he1.twin.next = edge2.next
-                    he1.twin.prev = edge.prev
-
-                    edge2.next.prev = he1.twin
-                    edge2.next = he1
-                    edge2.incidentFace = he1.incidentFace
-                    
-                    edge.prev.next = he1.twin
-                    edge.prev = he1
-                    edge.incidentFace = he1.incidentFace
-                    break
-
-            self.halfEdges.append(he1)
-            self.halfEdges.append(he1.twin)
-            self.faces.append(he1.incidentFace)
+def sign (v1, v2, v3):
+    return (v1.x - v3.x) * (v2.y - v3.y) - (v2.x - v3.x) * (v1.y - v3.y);
 
 
-# insideTri uses the barycentric coordinate system to find if point4 is inside the triangle formed by point1,2,3
-def insideTri(point1, point2, point3, point4):
+def insideTri(v1, v2, v3, pt):
 
-    denominator = ((point2.y-point3.y)*(point1.x-point3.x) + (point3.x-point2.x) * (point1.y - point3.y))
-    a = ((point2.y - point3.y) * (point4.x - point3.x) + (point3.x-point2.x) * (point4.y-point3.y)) / denominator
-    b = ((point3.y-point1.y) * (point4.x - point3.x) + (point1.x - point3.x) * (point4.y - point3.y)) / denominator
-    c = 1 - a - b 
-    return 0 <= a and a <= 1 and 0 <= b and b <= 1 and 0 <= c and c <= 1
+    d1 = sign(pt, v1, v2);
+    d2 = sign(pt, v2, v3);
+    d3 = sign(pt, v3, v1);
+
+    has_neg = (d1 < 0) or (d2 < 0) or (d3 < 0);
+    has_pos = (d1 > 0) or (d2 > 0) or (d3 > 0);
+
+    return not(has_neg and has_pos)
+
+
+# # insideTri uses the barycentric coordinate system to find if point4 is inside the triangle formed by point1,2,3
+# def insideTri(point1, point2, point3, point4):
+
+#     denominator = ((point2.y-point3.y)*(point1.x-point3.x) + (point3.x-point2.x) * (point1.y - point3.y))
+#     a = ((point2.y - point3.y) * (point4.x - point3.x) + (point3.x-point2.x) * (point4.y-point3.y)) / denominator
+#     b = ((point3.y-point1.y) * (point4.x - point3.x) + (point1.x - point3.x) * (point4.y - point3.y)) / denominator
+#     c = 1 - a - b 
+#     return 0 <= a and a <= 1 and 0 <= b and b <= 1 and 0 <= c and c <= 1
+
+
 
 def next_point(dcel):
 
@@ -321,8 +306,35 @@ def next_point(dcel):
 
     minDist = 2
 
-    v1.x += minDist
-    v2.x += minDist
+    if v1.x == v2.x:
+        if v1.y > v2.y: #is right edge
+            v1.x += minDist
+            v2.x += minDist
+        else: #is left edge
+            v1.x -= minDist
+            v2.x -= minDist
+    elif v1.y == v2.y:
+        if v1.x > v2.x: #is bottom edge
+            v1.y -= minDist
+            v2.y -= minDist
+        else: #is top edge
+            v1.y += minDist
+            v2.y += minDist
+    elif v1.y > v2.y:
+        if v1.x < v2.x: #top down right
+            v1.x += minDist
+            v2.x += minDist
+        else: #top down left
+            v1.x += minDist
+            v2.x += minDist
+    elif v1.y < v2.y:
+        if v1.x < v2.x: #bottom top right
+            v1.x -= minDist
+            v2.x -= minDist
+        else: #bottom top left
+            v1.x -= minDist
+            v2.x -= minDist
+
 
     m = Vertex((v1.x+v2.x)/2, (v1.y+v2.y)/2) # Mid point
     o = Vertex((v1.x-m.x)*3**0.5, (v1.y-m.y)*3**0.5)
@@ -338,61 +350,39 @@ def next_point(dcel):
     newv.x += v3.x
     newv.y += v3.y
 
-    # if not insideTri(v1,v2,v3,newv):
-    #     newv.mirror(v1,v2)
+    print("Point: " + str(newv))
+    print("v3" + str(v3))
+    print("v4" + str(v4))
 
-    if v1.y == v2.y:
-        if not insideTri(v1,v2,v4,newv):
-                newv.mirror(v1,v2)
-    else:
-        if not insideTri(v1,v2,v3,newv):
-                newv.mirror(v1,v2)
+    if insideTri(v1,v2,v4,newv):
+        print("Inside")
+        newv.mirror(v1,v2)
 
+    # if v1.y == v2.y:
+    #     if not insideTri(v1,v2,v4,newv):
+    #         print("Inside v4")
+    #         newv.mirror(v1,v2)
+    # else:
+    #     if not insideTri(v1,v2,v3,newv):
+    #         print("Inside v3")
+    #         newv.mirror(v1,v2)
 
-    # if v1.x == v2.x:
-    #     if v1.y > v2.y: #is right edge
-    #         if not insideTri(v1,v2,v3,newv):
-    #             newv.mirror(v1,v2)
-    #     else: #is left edge
-    #         if not insideTri(v1,v2,v4,newv):
-    #             newv.mirror(v1,v2)
-    # elif v1.y == v2.y:
-    #     if v1.x > v2.x: #is bottom edge
-    #         if not insideTri(v1,v2,v4,newv):
-    #             newv.mirror(v1,v2)
-    #     else: #is top edge
-    #         if not insideTri(v1,v2,v3,newv):
-    #             newv.mirror(v1,v2)
-    # elif v1.y > v2.y:
-    #     if v1.x < v2.x: #top down right
-    #         if not insideTri(v1,v2,v3,newv):
-    #             newv.mirror(v1,v2)
-    #     else: #top down left
-    #         if not insideTri(v1,v2,v4,newv):
-    #             newv.mirror(v1,v2)
-    # elif v1.y < v2.y:
-    #     if v1.x < v2.x: #bottom top right
-    #         if not insideTri(v1,v2,v3,newv):
-    #             newv.mirror(v1,v2)
-    #     else: #bottom top left
-    #         if not insideTri(v1,v2,v4,newv):
-    #             newv.mirror(v1,v2)
-
+    newv.x = round(newv.x)
+    newv.y = round(newv.y)
 
     return edge,newv
 
 
 def main():
 
-    triangle1 = [(1,2),(2,2),(2,3)]
-    print(str(DCEL.tree_vertices_to_ccw_edges(triangle1)))
+    # triangle1 = [(1,2),(2,2),(2,3)]
+
+    triangle1 = [(6,6),(5,2),(1,2)]
+    print(str(tree_vertices_to_ccw_edges(triangle1)))
 
     myDCEL = DCEL()
     myDCEL.build_triangular_dcel(triangle1)
     print(myDCEL)
-
-    #edg = myDCEL.halfEdges[4]
-    #myDCEL.add_vertex(edg,4,3)
 
     n = int(input("Nº of vertices: "))
 
@@ -406,8 +396,6 @@ def main():
 
     plt.plot(x,y)
     plt.show()
-
-
 
 if __name__ == "__main__":
     main()

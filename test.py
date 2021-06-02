@@ -102,8 +102,8 @@ class Triangle:
 
         return x,y
 
-# v1 = Vertex(3,8)
-# v2 = Vertex(6,1)
+v1 = Vertex(1,2)
+v2 = Vertex(6,6)
 
 #is right edge -> v3
 
@@ -147,8 +147,8 @@ class Triangle:
 
 minDist = 2
 
-v1.x += minDist
-v2.x += minDist
+# v1.x += minDist
+# v2.x += minDist
 
 
 m = Vertex((v1.x+v2.x)/2, (v1.y+v2.y)/2) # Mid point
@@ -184,7 +184,7 @@ for i in range(0,100):
     newv.x += v3.x
     newv.y += v3.y
 
-    if not insideTri(v1,v2,v3,newv):
+    if insideTri(v1,v2,v4,newv):
         print("Not inside daddy")
         print("old: " + str(newv))
         newv.mirror(v1,v2)
