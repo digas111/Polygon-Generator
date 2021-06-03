@@ -16,6 +16,13 @@ def bambora(v):
 
 v1 = Vertex(1,3)
 
+v2 = v1
+
+v1 = Vertex(5,4)
+
 print(v1)
-bambora(v1)
-print(v1)
+print(v2)
+
+# print(v1)
+# bambora(v1)
+# print(v1)

@@ -23,6 +23,8 @@
 
 import random
 import matplotlib.pyplot as plt
+import pylab as pl
+from matplotlib import collections as mc
 
 class Vertex:
 
@@ -111,30 +113,31 @@ class DCEL:
 
         return outsideEdges
 
-    def insideFaces_to_xy(self):
+    def get_lines(self):
 
-        x = []
-        y = []
+        lines = []
 
-        for i in range(1,len(self.faces)):
+        for edge in self.halfEdges:
+            p1 = (edge.origin.x,edge.origin.y)
+            p2 = (edge.next.origin.x,edge.next.origin.y)
+            lines.append([p1,p2])
 
-            fEdge = self.faces[i].edge
-            x.append(fEdge.origin.x)
-            y.append(fEdge.origin.y)
-            
-            j = fEdge.next
-            while j != fEdge:
-                x.append(j.origin.x)
-                y.append(j.origin.y)
-                j = j.next
+        return lines
 
-            x.append(fEdge.origin.x)
-            y.append(fEdge.origin.y)
-        
-        print(x)
-        print(y)
+    def new_point_intersect(self,ce,v1):
 
-        return x,y
+        edges = self.get_outside_edges()
+        edges.remove(ce)
+
+        for edge in edges:
+            if edge.next.origin != ce.origin:
+                if segments_intersect(edge.origin,edge.next.origin,ce.origin,v1):
+                    return True
+            if edge.origin != ce.next.origin:
+                if segments_intersect(edge.origin,edge.next.origin,v1,ce.next.origin):
+                    return True
+
+        return False
 
     def build_triangular_dcel(self, points):
 
@@ -211,9 +214,12 @@ class DCEL:
 
     def add_vertex(self,edge,x,y):
 
-        print("adding vertex: ("  + str(x) + "," + str(y) + ") to edge: " 
-            + str(edge.origin) + " -> " + str(edge.next.origin))
-     
+        #print("adding vertex: ("  + str(x) + "," + str(y) + ") to edge: " + str(edge.origin) + " -> " + str(edge.next.origin))
+        
+        #check if edge is edge of external face
+        if self.faces[0].edge == edge:
+            self.faces[0].edge = edge.next
+
         v1 = Vertex(x,y)
 
         he1 = HalfEdge(edge.next.origin)
@@ -224,24 +230,28 @@ class DCEL:
         he1.next = he2
         he1.prev = edge
         he1.incidentFace = Face(he1)
-        he1.twin = HalfEdge(v1)
-        
+            
         he2.next = edge
         he2.prev = he1
         he2.incidentFace = he1.incidentFace
-        he2.twin = HalfEdge(he1.next.origin)
+
+        he1.twin = HalfEdge(v1)
+        he2.twin = HalfEdge(edge.origin)
 
         he1.twin.prev = he2.twin
         he1.twin.next = edge.next
+        he1.twin.isOutside = True
         he1.twin.incidentFace = edge.incidentFace
         he1.twin.twin = he1
-        he1.twin.isOutside = True
 
         he2.twin.prev = edge.prev
         he2.twin.next = he1.twin
+        he2.twin.isOutside = True
         he2.twin.incidentFace = edge.incidentFace
         he2.twin.twin = he2
-        he2.twin.isOutside = True
+
+        edge.next.prev = he1.twin
+        edge.prev.next = he2.twin
 
         edge.next = he1
         edge.prev = he2
@@ -250,13 +260,27 @@ class DCEL:
 
         self.vertices.append(v1)
         self.halfEdges.append(he1)
-        self.halfEdges.append(he1.twin)
         self.halfEdges.append(he2)
+        self.halfEdges.append(he1.twin)
         self.halfEdges.append(he2.twin)
+
         self.faces.append(he1.incidentFace)
-    
 
+    # def collinear_with_edge(x1, y1, x2, y2, x3, y3):
+    def collinear_with_polygon(self,v1):
+        """ Calculation the area of 
+            triangle. We have skipped
+            multiplication with 0.5 to
+            avoid floating point computations """
 
+        edges = self.get_outside_edges()
+
+        for edge in edges:
+            a = v1.x * (edge.origin.y - edge.next.origin.y) + edge.origin.x * (edge.next.origin.y - v1.y) + edge.next.origin.x * (v1.y - edge.origin.y)
+            if a == 0:
+                return True
+
+        return False
 
 def tree_vertices_to_ccw_edges(points):
     
@@ -274,7 +298,6 @@ def tree_vertices_to_ccw_edges(points):
 def sign (v1, v2, v3):
     return (v1.x - v3.x) * (v2.y - v3.y) - (v2.x - v3.x) * (v1.y - v3.y);
 
-
 def insideTri(v1, v2, v3, pt):
 
     d1 = sign(pt, v1, v2);
@@ -286,24 +309,12 @@ def insideTri(v1, v2, v3, pt):
 
     return not(has_neg and has_pos)
 
-
-# # insideTri uses the barycentric coordinate system to find if point4 is inside the triangle formed by point1,2,3
-# def insideTri(point1, point2, point3, point4):
-
-#     denominator = ((point2.y-point3.y)*(point1.x-point3.x) + (point3.x-point2.x) * (point1.y - point3.y))
-#     a = ((point2.y - point3.y) * (point4.x - point3.x) + (point3.x-point2.x) * (point4.y-point3.y)) / denominator
-#     b = ((point3.y-point1.y) * (point4.x - point3.x) + (point1.x - point3.x) * (point4.y - point3.y)) / denominator
-#     c = 1 - a - b 
-#     return 0 <= a and a <= 1 and 0 <= b and b <= 1 and 0 <= c and c <= 1
-
-
-
 def next_point(dcel):
 
     edges = dcel.get_outside_edges()
 
     edge = edges[random.randint(0,len(edges)-1)]
-    print("Edge escolhida: " + str(edge.origin) + " -> " + str(edge.next.origin))
+    #print("Edge escolhida: " + str(edge.origin) + " -> " + str(edge.next.origin))
     v1 = Vertex(edge.origin.x,edge.origin.y)
     v2 = Vertex(edge.next.origin.x,edge.next.origin.y)
 
@@ -353,22 +364,13 @@ def next_point(dcel):
     newv.x += v3.x
     newv.y += v3.y
 
-    print("v3" + str(v3))
-    print("v4" + str(v4))
-    print("Random Point: " + str(newv))
+    #print("v3" + str(v3))
+    #print("v4" + str(v4))
+    #print("Random Point: " + str(newv))
 
     if insideTri(v1,v2,v4,newv):
-        print("Inside point")
+        #print("Inside point")
         newv.mirror(v1,v2)
-
-    # if v1.y == v2.y:
-    #     if not insideTri(v1,v2,v4,newv):
-    #         print("Inside v4")
-    #         newv.mirror(v1,v2)
-    # else:
-    #     if not insideTri(v1,v2,v3,newv):
-    #         print("Inside v3")
-    #         newv.mirror(v1,v2)
 
     newv.x = round(newv.x)
     newv.y = round(newv.y)
@@ -376,28 +378,119 @@ def next_point(dcel):
     return edge,newv
 
 
+
+def onSegment(p, q, r):
+    if ( (q.x <= max(p.x, r.x)) and (q.x >= min(p.x, r.x)) and 
+           (q.y <= max(p.y, r.y)) and (q.y >= min(p.y, r.y))):
+        return True
+    return False
+
+def orientation(p, q, r):
+    # to find the orientation of an ordered triplet (p,q,r)
+    # function returns the following values:
+    # 0 : Colinear points
+    # 1 : Clockwise points
+    # 2 : Counterclockwise
+      
+    # See https://www.geeksforgeeks.org/orientation-3-ordered-points/amp/ 
+    # for details of below formula. 
+      
+    val = (float(q.y - p.y) * (r.x - q.x)) - (float(q.x - p.x) * (r.y - q.y))
+    if (val > 0):
+        # Clockwise orientation
+        return 1
+    elif (val < 0):
+        # Counterclockwise orientation
+        return 2
+    else:
+        # Colinear orientation
+        return 0
+
+def segments_intersect(p1,q1,p2,q2):
+
+    # Find the 4 orientations required for 
+    # the general and special cases
+    o1 = orientation(p1, q1, p2)
+    o2 = orientation(p1, q1, q2)
+    o3 = orientation(p2, q2, p1)
+    o4 = orientation(p2, q2, q1)
+  
+    # General case
+    if ((o1 != o2) and (o3 != o4)):
+        return True
+  
+    # Special Cases
+  
+    # p1 , q1 and p2 are colinear and p2 lies on segment p1q1
+    if ((o1 == 0) and onSegment(p1, p2, q1)):
+        return True
+  
+    # p1 , q1 and q2 are colinear and q2 lies on segment p1q1
+    if ((o2 == 0) and onSegment(p1, q2, q1)):
+        return True
+  
+    # p2 , q2 and p1 are colinear and p1 lies on segment p2q2
+    if ((o3 == 0) and onSegment(p2, p1, q2)):
+        return True
+  
+    # p2 , q2 and q1 are colinear and q1 lies on segment p2q2
+    if ((o4 == 0) and onSegment(p2, q1, q2)):
+        return True
+  
+    # If none of the cases
+    return False
+
+def is_inside_box(v1,m):
+
+    if v1.x < 0 or v1.x > m or v1.y < 0 or v1.y > m:
+        return False
+
+    return True
+
+def starting_polygon(m):
+
+    s = round(m/2)
+    return [(s,s),(s+1,s),(s,s+1)]
+
 def main():
-
-    # triangle1 = [(1,2),(2,2),(2,3)]
-
-    triangle1 = [(6,6),(5,2),(1,2)]
-    print(str(tree_vertices_to_ccw_edges(triangle1)))
-
-    myDCEL = DCEL()
-    myDCEL.build_triangular_dcel(triangle1)
-    print(myDCEL)
 
     n = int(input("Nº of vertices: "))
 
-    for i in range(0,n):
-        edge,vertex = next_point(myDCEL)
+    while n < 3:
+        print("Polygon needs at least 3 vertices!!")
+        n = int(input("Nº of vertices: "))
+
+    m = int(input("Max value for vertices coordinates: "))
+
+    triangle = starting_polygon(m)
+    #print(str(tree_vertices_to_ccw_edges(triangle)))
+
+    myDCEL = DCEL()
+    myDCEL.build_triangular_dcel(triangle)
+    #print(myDCEL)
+
+    for i in range(0,n-3):
+        for j in range(0,500):
+                edge,vertex = next_point(myDCEL)
+                if not myDCEL.new_point_intersect(edge,vertex):
+                    if is_inside_box(vertex,m):
+                        if not myDCEL.collinear_with_polygon(vertex):
+                            break
+        if j==499:
+            print("Could not create polygon with that many vertices in that space")
+            return
         myDCEL.add_vertex(edge,vertex.x,vertex.y)
 
     print(myDCEL)
 
-    x,y = myDCEL.insideFaces_to_xy()
+    lines = myDCEL.get_lines()
+    lc = mc.LineCollection(lines)
+    fig, ax = pl.subplots()
+    ax.add_collection(lc)
+    ax.margins(0.1)
 
-    plt.plot(x,y)
+    plt.xticks(range(0,m+1))
+    plt.yticks(range(0,m+1))
     plt.show()
 
 if __name__ == "__main__":
