@@ -211,10 +211,9 @@ class DCEL:
 
     def add_vertex(self,edge,x,y):
 
-        print("adding vertex: ("  + str(x) + "," + str(y) + ")")
-        print("to edge: ")
-        print(str(edge.origin) + " -> " + str(edge.next.origin))
-
+        print("adding vertex: ("  + str(x) + "," + str(y) + ") to edge: " 
+            + str(edge.origin) + " -> " + str(edge.next.origin))
+     
         v1 = Vertex(x,y)
 
         he1 = HalfEdge(edge.next.origin)
@@ -255,6 +254,9 @@ class DCEL:
         self.halfEdges.append(he2)
         self.halfEdges.append(he2.twin)
         self.faces.append(he1.incidentFace)
+    
+
+
 
 def tree_vertices_to_ccw_edges(points):
     
@@ -301,6 +303,7 @@ def next_point(dcel):
     edges = dcel.get_outside_edges()
 
     edge = edges[random.randint(0,len(edges)-1)]
+    print("Edge escolhida: " + str(edge.origin) + " -> " + str(edge.next.origin))
     v1 = Vertex(edge.origin.x,edge.origin.y)
     v2 = Vertex(edge.next.origin.x,edge.next.origin.y)
 
@@ -350,12 +353,12 @@ def next_point(dcel):
     newv.x += v3.x
     newv.y += v3.y
 
-    print("Point: " + str(newv))
     print("v3" + str(v3))
     print("v4" + str(v4))
+    print("Random Point: " + str(newv))
 
     if insideTri(v1,v2,v4,newv):
-        print("Inside")
+        print("Inside point")
         newv.mirror(v1,v2)
 
     # if v1.y == v2.y:
@@ -369,7 +372,7 @@ def next_point(dcel):
 
     newv.x = round(newv.x)
     newv.y = round(newv.y)
-
+    
     return edge,newv
 
 
