@@ -1,24 +1,6 @@
 """
-    Things to consider:
-        - Polygon with n-vertices:
-        - Coordinates of the vertices are non-negative and smaller than M
-        - Output is the vertices of the polygon in CCW (DCEL)
-
-    TO DO:
-        [x] - CCW order 3 points
-        [] - Polygon with n-vertices: (n ≥ 3) or give error
-        [] - 
-
-    To add vertex:
-        - Choose an edge
-        - Get a random point Inside the two semi circules
-            - Given by the size of smallest edge and size of the sum two largest edge and the largets angle (inside m range)
-        - 
-
-    ------------------------------
-
-        -
-
+Code by: Diogo Ribeiro & Armando Martins
+Advanced Topics in Algorithms - FCUP, University of Porto
 """
 
 import random
@@ -36,7 +18,7 @@ class Vertex:
     def __str__(self):
         return "(" + str(self.x) + "," + str(self.y) + ")"
 
-    #função que calcula o reflexo ao point sobre a reta definida por point1 e point2
+    # Mirrors the vertex by the axis given by point1 and point2
     def mirror(self, point1, point2):
         if(point2.x == point1.x):
             if(self.x < point1.x):
@@ -57,12 +39,10 @@ class Vertex:
             self.y = 2 * d * m - self.y + 2 * c
 
 class Face:
-
     def __init__(self, edge):
         self.edge = edge
 
 class HalfEdge:
-
     def __init__(self,origin):
         self.origin = origin
         self.twin = None
@@ -72,12 +52,12 @@ class HalfEdge:
         self.isOutside = False
 
 class DCEL:
-
     def __init__(self):
         self.vertices = []
         self.faces = []
         self.halfEdges = []
     
+    # Returns the DCEL as a string
     def __str__(self):
         output = "Vertex:\n"
         output += "| Vertex | Coordinates | IncidentEdge |\n"
@@ -103,6 +83,7 @@ class DCEL:
 
         return output
 
+    # Returns the edges of the polygon (outside edges of the DCEL)
     def get_outside_edges(self):
 
         outsideEdges = []
@@ -113,6 +94,7 @@ class DCEL:
 
         return outsideEdges
 
+    # Returns the lines that represent every edge in the DCEL
     def get_lines(self):
 
         lines = []
@@ -124,6 +106,7 @@ class DCEL:
 
         return lines
 
+    # Checks if the traingle given by the edge "edge" and the vertex "v1" intercects any edge in "edges"
     def new_point_intersect(self,ce,v1,edges):
 
         edges.remove(ce)
@@ -138,6 +121,7 @@ class DCEL:
 
         return False
 
+    # builds a DCEL from a triangle (3 points)
     def build_triangular_dcel(self, points):
 
         edges = tree_vertices_to_ccw_edges(points)
@@ -211,9 +195,8 @@ class DCEL:
         #inside face
         self.faces.append(f2)
 
+    # Adds the triangle given by the edge "edge" and the vertex "(x,y)" to the DCEL
     def add_vertex(self,edge,x,y):
-
-        #print("adding vertex: ("  + str(x) + "," + str(y) + ") to edge: " + str(edge.origin) + " -> " + str(edge.next.origin))
         
         #check if edge is edge of external face
         if self.faces[0].edge == edge:
@@ -265,12 +248,8 @@ class DCEL:
 
         self.faces.append(he1.incidentFace)
 
-    # def collinear_with_edge(x1, y1, x2, y2, x3, y3):
+    # Checks if the vertex "v1" is colinear with any edge in "edges"
     def collinear_with_polygon(self,v1,edges):
-        """ Calculation the area of 
-            triangle. We have skipped
-            multiplication with 0.5 to
-            avoid floating point computations """
 
         for edge in edges:
             a = v1.x * (edge.origin.y - edge.next.origin.y) + edge.origin.x * (edge.next.origin.y - v1.y) + edge.next.origin.x * (v1.y - edge.origin.y)
@@ -279,19 +258,11 @@ class DCEL:
 
         return False
 
-def tree_vertices_to_ccw_edges(points):
-    
-    if len(points) != 3:
-        #give error
-        pass
-    
-    xsorted = sorted(points, key=lambda tup: tup[0])
-    first = xsorted.pop(0)
-    ysorted = sorted(xsorted, key=lambda tup: tup[1])
-    second = ysorted.pop(0)
-    third = ysorted.pop(0)
-    return [(first,second),(second,third),(third,first)]
-
+#######
+# This part of the code is inspired by
+# https://stackoverflow.com/questions/2049582/how-to-determine-if-a-point-is-in-a-2d-triangle
+# Last checked in 5/6/2021
+#######
 def sign (v1, v2, v3):
     return (v1.x - v3.x) * (v2.y - v3.y) - (v2.x - v3.x) * (v1.y - v3.y);
 
@@ -306,73 +277,13 @@ def insideTri(v1, v2, v3, pt):
 
     return not(has_neg and has_pos)
 
-def next_point(edges):
+#######
 
-    edge = edges[random.randint(0,len(edges)-1)]
-    #print("Edge escolhida: " + str(edge.origin) + " -> " + str(edge.next.origin))
-    v1 = Vertex(edge.origin.x,edge.origin.y)
-    v2 = Vertex(edge.next.origin.x,edge.next.origin.y)
-
-    minDist = 2
-
-    if v1.x == v2.x:
-        if v1.y > v2.y: #is right edge
-            v1.x += minDist
-            v2.x += minDist
-        else: #is left edge
-            v1.x -= minDist
-            v2.x -= minDist
-    elif v1.y == v2.y:
-        if v1.x > v2.x: #is bottom edge
-            v1.y -= minDist
-            v2.y -= minDist
-        else: #is top edge
-            v1.y += minDist
-            v2.y += minDist
-    elif v1.y > v2.y:
-        if v1.x < v2.x: #top down right
-            v1.x += minDist
-            v2.x += minDist
-        else: #top down left
-            v1.x += minDist
-            v2.x += minDist
-    elif v1.y < v2.y:
-        if v1.x < v2.x: #bottom top right
-            v1.x -= minDist
-            v2.x -= minDist
-        else: #bottom top left
-            v1.x -= minDist
-            v2.x -= minDist
-
-
-    m = Vertex((v1.x+v2.x)/2, (v1.y+v2.y)/2) # Mid point
-    o = Vertex((v1.x-m.x)*3**0.5, (v1.y-m.y)*3**0.5)
-
-    v3 = Vertex(m.x+o.y,m.y-o.x)
-    v4 = Vertex(m.x-o.y,m.y+o.x)
-
-    r1 = random.uniform(0,1)
-    r2 = random.uniform(0,1)
-
-    newv = Vertex(r1 * (v1.x-v3.x) + r2 * (v2.x-v3.x),r1 * (v1.y-v3.y) + r2 * (v2.y-v3.y))
-
-    newv.x += v3.x
-    newv.y += v3.y
-
-    #print("v3" + str(v3))
-    #print("v4" + str(v4))
-    #print("Random Point: " + str(newv))
-
-    if insideTri(v1,v2,v4,newv):
-        #print("Inside point")
-        newv.mirror(v1,v2)
-
-    newv.x = round(newv.x)
-    newv.y = round(newv.y)
-    
-    return edge,newv
-
-
+#######
+# This part of the code is inspired by geeksforgeeks
+# https://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
+# Last checked in 5/6/2021
+#######
 
 def onSegment(p, q, r):
     if ( (q.x <= max(p.x, r.x)) and (q.x >= min(p.x, r.x)) and 
@@ -435,6 +346,80 @@ def segments_intersect(p1,q1,p2,q2):
     # If none of the cases
     return False
 
+#######
+
+# Orders 3 points in CCW order
+def tree_vertices_to_ccw_edges(points):
+    
+    xsorted = sorted(points, key=lambda tup: tup[0])
+    first = xsorted.pop(0)
+    ysorted = sorted(xsorted, key=lambda tup: tup[1])
+    second = ysorted.pop(0)
+    third = ysorted.pop(0)
+    return [(first,second),(second,third),(third,first)]
+
+# Generates a new possible next point to create the next triangle to be glued to the polygon
+def next_point(edges):
+
+    edge = edges[random.randint(0,len(edges)-1)]
+    v1 = Vertex(edge.origin.x,edge.origin.y)
+    v2 = Vertex(edge.next.origin.x,edge.next.origin.y)
+
+    #makes sure the point is not too close to the edge
+    minDist = 2
+
+    if v1.x == v2.x:
+        if v1.y > v2.y: #is right edge
+            v1.x += minDist
+            v2.x += minDist
+        else: #is left edge
+            v1.x -= minDist
+            v2.x -= minDist
+    elif v1.y == v2.y:
+        if v1.x > v2.x: #is bottom edge
+            v1.y -= minDist
+            v2.y -= minDist
+        else: #is top edge
+            v1.y += minDist
+            v2.y += minDist
+    elif v1.y > v2.y:
+        if v1.x < v2.x: #top down right
+            v1.x += minDist
+            v2.x += minDist
+        else: #top down left
+            v1.x += minDist
+            v2.x += minDist
+    elif v1.y < v2.y:
+        if v1.x < v2.x: #bottom top right
+            v1.x -= minDist
+            v2.x -= minDist
+        else: #bottom top left
+            v1.x -= minDist
+            v2.x -= minDist
+
+    m = Vertex((v1.x+v2.x)/2, (v1.y+v2.y)/2) # Mid point
+    o = Vertex((v1.x-m.x)*3**0.5, (v1.y-m.y)*3**0.5)
+
+    v3 = Vertex(m.x+o.y,m.y-o.x)
+    v4 = Vertex(m.x-o.y,m.y+o.x)
+
+    r1 = random.uniform(0,1)
+    r2 = random.uniform(0,1)
+
+    newv = Vertex(r1 * (v1.x-v3.x) + r2 * (v2.x-v3.x),r1 * (v1.y-v3.y) + r2 * (v2.y-v3.y))
+
+    newv.x += v3.x
+    newv.y += v3.y
+
+    if insideTri(v1,v2,v4,newv):
+        newv.mirror(v1,v2)
+
+    newv.x = round(newv.x)
+    newv.y = round(newv.y)
+    
+    return edge,newv
+
+# Checks if the point's coordinates are between 0 and m
 def is_inside_box(v1,m):
 
     if v1.x < 0 or v1.x > m or v1.y < 0 or v1.y > m:
@@ -442,6 +427,7 @@ def is_inside_box(v1,m):
 
     return True
 
+# Generates the starting polygon based on the window size (m)
 def starting_polygon(m):
 
     s = round(m/2)
@@ -458,11 +444,9 @@ def main():
     m = int(input("Max value for vertices coordinates: "))
 
     triangle = starting_polygon(m)
-    #print(str(tree_vertices_to_ccw_edges(triangle)))
 
     myDCEL = DCEL()
     myDCEL.build_triangular_dcel(triangle)
-    #print(myDCEL)
 
     for i in range(0,n-3):
         outsideEdges = myDCEL.get_outside_edges()
@@ -479,13 +463,14 @@ def main():
 
     print(myDCEL)
 
+    # shows the DCEL in matplotlib
     lines = myDCEL.get_lines()
     lc = mc.LineCollection(lines)
     fig, ax = pl.subplots()
     ax.add_collection(lc)
     ax.autoscale()
     ax.margins(0.1)
-
+    fig.canvas.manager.set_window_title("Polygon with " + str(n) + " vertices with coordinates between 0 and " + str(m))
     plt.show()
 
 if __name__ == "__main__":
