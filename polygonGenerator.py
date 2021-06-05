@@ -124,9 +124,8 @@ class DCEL:
 
         return lines
 
-    def new_point_intersect(self,ce,v1):
+    def new_point_intersect(self,ce,v1,edges):
 
-        edges = self.get_outside_edges()
         edges.remove(ce)
 
         for edge in edges:
@@ -267,13 +266,11 @@ class DCEL:
         self.faces.append(he1.incidentFace)
 
     # def collinear_with_edge(x1, y1, x2, y2, x3, y3):
-    def collinear_with_polygon(self,v1):
+    def collinear_with_polygon(self,v1,edges):
         """ Calculation the area of 
             triangle. We have skipped
             multiplication with 0.5 to
             avoid floating point computations """
-
-        edges = self.get_outside_edges()
 
         for edge in edges:
             a = v1.x * (edge.origin.y - edge.next.origin.y) + edge.origin.x * (edge.next.origin.y - v1.y) + edge.next.origin.x * (v1.y - edge.origin.y)
@@ -309,9 +306,7 @@ def insideTri(v1, v2, v3, pt):
 
     return not(has_neg and has_pos)
 
-def next_point(dcel):
-
-    edges = dcel.get_outside_edges()
+def next_point(edges):
 
     edge = edges[random.randint(0,len(edges)-1)]
     #print("Edge escolhida: " + str(edge.origin) + " -> " + str(edge.next.origin))
@@ -470,11 +465,12 @@ def main():
     #print(myDCEL)
 
     for i in range(0,n-3):
+        outsideEdges = myDCEL.get_outside_edges()
         for j in range(0,500):
-                edge,vertex = next_point(myDCEL)
-                if not myDCEL.new_point_intersect(edge,vertex):
+                edge,vertex = next_point(outsideEdges)
+                if not myDCEL.new_point_intersect(edge,vertex,outsideEdges):
                     if is_inside_box(vertex,m):
-                        if not myDCEL.collinear_with_polygon(vertex):
+                        if not myDCEL.collinear_with_polygon(vertex,outsideEdges):
                             break
         if j==499:
             print("Could not create polygon with that many vertices in that space")
@@ -487,10 +483,9 @@ def main():
     lc = mc.LineCollection(lines)
     fig, ax = pl.subplots()
     ax.add_collection(lc)
+    ax.autoscale()
     ax.margins(0.1)
 
-    plt.xticks(range(0,m+1))
-    plt.yticks(range(0,m+1))
     plt.show()
 
 if __name__ == "__main__":
