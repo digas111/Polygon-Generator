@@ -23,7 +23,7 @@ Next you are prompted to choose the maximum value for vertices coordinates:
 Max value for vertices coordinates:
 ```
 This parameter is used to create smaller polygons with many triangles.
-However it may not be possible to create such polygon within this parameters in witch case a error message will be displayed and the program will close.
+However it may not be possible to create such polygon within this parameters in which case a error message will be displayed and the program will close.
 
 After choosing this parameters the app will generate the polygon and plot it in a separate window as well as printing the DCEL in the terminal.
 
